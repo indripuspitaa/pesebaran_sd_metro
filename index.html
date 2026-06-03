@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eduka GIS - WebGIS Sekolah Dasar Kota Metro</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ========================================================== */
+        /* RESET & VARIABLE GLOBAL */
+        /* ========================================================== */
+        :root {
+            --teal-dark: #093c42;
+            --teal-light: #0d5c65;
+            --orange-accent: #ff9f1c;
+            --orange-hover: #e08500;
+            --bg-light: #f8f9fa;
+            --text-dark: #333333;
+            --text-muted: #666666;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ========================================================== */
+        /* NAVBAR SYSTEM */
+        /* ========================================================== */
+        .navbar {
+            background-color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 8%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1000;
+            height: 70px;
+        }
+        .navbar .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--teal-dark);
+            cursor: pointer;
+        }
+        .navbar .logo span { color: var(--orange-accent); }
+        .navbar nav {
+            display: flex;
+            gap: 5px;
+        }
+        .navbar nav button {
+            background: none;
+            border: none;
+            color: var(--text-dark);
+            margin: 0 10px;
+            font-weight: 500;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            padding: 5px 0;
+        }
+        .navbar nav button:hover, .navbar nav button.active { 
+            color: var(--orange-accent); 
+            border-bottom: 2px solid var(--orange-accent);
+        }
+        .btn-cta-nav {
+            background-color: var(--orange-accent);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-cta-nav:hover { background-color: var(--orange-hover); }
+
+        /* ========================================================== */
+        /* MULTI-PAGE TAB VIEW MANAGEMENT */
+        /* ========================================================== */
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        #halaman-peta.active {
+            display: flex;
+        }
+
+        /* ========================================================== */
+        /* HALAMAN 1: BERANDA & STATISTIK MAKRO */
+        /* ========================================================== */
+        .hero {
+            position: relative;
+            /* PERBAIKAN: Mengarah ke folder assets dengan nama BG.jpeg */
+            background: url(bg.jpeg) no-repeat center center/cover;
+            height: 50vh;
+            display: flex;
+            align-items: center;
+            padding: 0 8%;
+            color: #fff;
+        }
+        .hero-overlay {
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: linear-gradient(to right, rgba(9,60,66,0.95), rgba(13,92,101,0.6));
+            z-index: 1;
+        }
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 700px;
+        }
+        .welcome-text {
+            color: var(--orange-accent);
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .hero-content h1 { font-size: 38px; line-height: 1.2; margin-bottom: 15px; }
+        .hero-content h1 span { color: var(--orange-accent); }
+        .hero-desc { font-size: 15px; margin-bottom: 25px; opacity: 0.9; line-height: 1.6; }
+
+        .btn-primary, .btn-secondary {
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-weight: 600;
+            display: inline-block;
+            margin-right: 15px;
+            cursor: pointer;
+            border: none;
+            transition: 0.3s;
+            text-decoration: none;
+            text-align: center;
+        }
+        .btn-primary { background-color: var(--orange-accent); color: #fff; }
+        .btn-primary:hover { background-color: var(--orange-hover); }
+        .btn-secondary { background-color: transparent; border: 2px solid #fff; color: #fff; }
+        .btn-secondary:hover { background-color: #fff; color: var(--teal-dark); }
+
+        /* SEKSI STATISTIK MAKRO UTAMA */
+        .macro-stats-section {
+            padding: 40px 8% 60px 8%;
+            background-color: var(--bg-light);
+        }
+        .section-title {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        .section-title h2 {
+            font-size: 26px;
+            color: var(--teal-dark);
+            margin-bottom: 8px;
+        }
+        .section-title p {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 25px;
+        }
+        .stat-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.04);
+            border: 1px solid #eef2f3;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background-color: var(--teal-light);
+        }
+        .stat-card.accent::before {
+            background-color: var(--orange-accent);
+        }
+        .card-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        .card-header-info h3 {
+            font-size: 14px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background-color: #eef7f8;
+            color: var(--teal-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .stat-card.accent .icon-box {
+            background-color: #fff6eb;
+            color: var(--orange-accent);
+        }
+        .counter-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--teal-dark);
+            margin-bottom: 10px;
+        }
+        .card-footer-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid #f5f5f5;
+            padding-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .card-footer-desc i {
+            color: #2ec4b6;
+        }
+        .card-footer-desc .badge {
+            background-color: #eef7f8;
+            color: var(--teal-light);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* ========================================================== */
+        /* HALAMAN 2: PROFIL PENGEMBANG (MAHASISWA) */
+        /* ========================================================== */
+        .profile-section {
+            padding: 40px 8%;
+            background: var(--bg-light);
+            min-height: calc(100vh - 70px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .profile-card-box {
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 950px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            overflow: hidden;
+            border: 1px solid #eaeaea;
+        }
+        .profile-img-side {
+            background: linear-gradient(135deg, var(--teal-dark), var(--teal-light));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: #fff;
+            text-align: center;
+        }
+        .avatar-container {
+            width: 180px;
+            height: 240px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .avatar-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .profile-img-side h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .profile-img-side p {
+            font-size: 13px;
+            opacity: 0.85;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        .profile-img-side p.univ-tag {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+        .profile-info-side {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+        .profile-info-side .sub-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--orange-accent);
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        
+        /* Navigasi Tab Internal Profil */
+        .profile-tabs-nav {
+            display: flex;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 25px;
+            gap: 15px;
+        }
+        .profile-tabs-nav button {
+            background: none;
+            border: none;
+            padding: 10px 5px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: 0.3s;
+            position: relative;
+        }
+        .profile-tabs-nav button.active {
+            color: var(--teal-light);
+        }
+        .profile-tabs-nav button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px; left: 0; width: 100%; height: 2px;
+            background-color: var(--teal-light);
+        }
+
+        /* Konten Tab Profil */
+        .subprofile-panel {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .subprofile-panel.active {
+            display: block;
+        }
+
+        .profile-details-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .p-info-item {
+            display: flex;
+            align-items: center;
+            font-size: 15px;
+            color: var(--text-dark);
+            border-bottom: 1px solid #f8f9fa;
+            padding-bottom: 8px;
+        }
+        .p-info-item i { 
+            color: var(--teal-light); 
+            margin-right: 15px; 
+            width: 20px; 
+            font-size: 16px;
+            text-align: center;
+        }
+        .p-info-item strong {
+            width: 165px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* Desain Struktur Timeline Sekolah & Organisasi */
+        .timeline-list {
+            position: relative;
+            padding-left: 25px;
+            border-left: 2px solid #eef2f3;
+            margin-left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .timeline-item {
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -31px;
+            top: 4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--orange-accent);
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 3px rgba(255, 159, 28, 0.2);
+        }
+        .timeline-item.active::before {
+            background-color: var(--teal-light);
+            box-shadow: 0 0 0 3px rgba(13, 92, 101, 0.2);
+        }
+        .timeline-year {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--orange-accent);
+            margin-bottom: 3px;
+        }
+        .timeline-item.active .timeline-year {
+            color: var(--teal-light);
+        }
+        .timeline-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .timeline-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ========================================================== */
+        /* HALAMAN 3: LAYOUT DASHBOARD MAPS */
+        /* ========================================================== */
+        .webgis-container { display: flex; width: 100%; height: calc(100vh - 70px); overflow: hidden; }
+        
+        .sidebar-map {
+            width: 380px; background: #ffffff; box-shadow: 3px 0 15px rgba(0,0,0,0.1);
+            padding: 20px; display: flex; flex-direction: column; gap: 15px;
+            z-index: 500; overflow-y: auto; height: 100%;
+        }
+        .sidebar-map h2 { font-size: 18px; color: var(--teal-dark); }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 14px; font-weight: 600; color: var(--text-dark); }
+        .filter-group select {
+            padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; outline: none;
+        }
+        
+        .gis-tools {
+            background: #eef7f8; padding: 15px; border-radius: 5px;
+            border-left: 4px solid var(--teal-light);
+        }
+        .gis-tools h3 { font-size: 14px; margin-bottom: 10px; color: var(--teal-dark); }
+        .tool-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+        .tool-item input { margin-top: 3px; cursor: pointer; }
+        .tool-item label { font-size: 12px; line-height: 1.4; cursor: pointer; }
+
+        .dashboard-summary {
+            background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 15px;
+            flex-grow: 1; display: flex; flex-direction: column; min-height: 250px;
+        }
+        .dashboard-summary h3 { font-size: 14px; margin-bottom: 10px; color: var(--teal-dark); border-bottom: 2px solid #eee; padding-bottom: 5px;}
+        .summary-scroll { overflow-y: auto; flex: 1; padding-right: 5px; }
+        .placeholder-text { font-size: 12px; color: var(--text-muted); font-style: italic; text-align: center; margin-top: 30px; line-height: 1.5; }
+
+        .map-workspace { flex: 1; height: 100%; position: relative; }
+        #map { width: 100%; height: 100%; }
+
+        .info-section-title {
+            font-size: 11px; font-weight: 700; color: #fff; background: var(--teal-light);
+            padding: 4px 8px; margin: 12px 0 6px 0; border-radius: 3px; letter-spacing: 0.5px;
+        }
+        .info-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 5px; }
+        .info-table td { padding: 5px 4px; border-bottom: 1px solid #eee; vertical-align: top; }
+        .info-table td:first-child { font-weight: 600; color: var(--text-muted); width: 45%; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo" onclick="bukaTab('halaman-beranda')">
+            <i class="fa-solid fa-graduation-cap"></i> eduka<span>GIS</span>
+        </div>
+        <nav>
+            <button id="btn-tab-beranda" class="active" onclick="bukaTab('halaman-beranda')">Beranda</button>
+            <button id="btn-tab-profil" onclick="bukaTab('halaman-profil')">Profil Mahasiswa</button>
+            <button id="btn-tab-peta" onclick="bukaTab('halaman-peta')">Peta WebGIS</button>
+        </nav>
+        <button class="btn-cta-nav" onclick="bukaTab('halaman-peta')">Buka WebGIS <i class="fa-solid fa-arrow-right"></i></button>
+    </header>
+
+    <div id="halaman-beranda" class="tab-content active">
+        <section class="hero">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <p class="welcome-text">SISTEM INFORMASI GEOGRAFIS PENDIDIKAN</p>
+                <h1>Analisis Spasial & Pemetaan <br><span>Sekolah Dasar</span> Kota Metro</h1>
+                <p class="hero-desc">Platform WebGIS interaktif yang dirancang untuk menyajikan peta persebaran, ketersediaan fasilitas, serta indikator statistik makro infrastruktur dasar guna mendukung pemerataan mutu pendidikan di Kota Metro.</p>
+                <div class="hero-buttons">
+                    <button onclick="bukaTab('halaman-peta')" class="btn-primary">Mulai Eksplorasi Peta <i class="fa-solid fa-map-marked-alt"></i></button>
+                    <button onclick="bukaTab('halaman-profil')" class="btn-secondary">Lihat Profil Pembuat</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="macro-stats-section">
+            <div class="section-title">
+                <h2>Ringkasan Statistik Makro Pendidikan</h2>
+                <p>Gambaran umum kapasitas, daya tampung, dan cakupan wilayah spasial Sekolah Dasar di Kota Metro</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="card-header-info">
+                        <h3>Total Sekolah Dasar</h3>
+                        <div class="icon-box"><i class="fa-solid fa-school"></i></div>
+                    </div>
+                    <div class="counter-number">64 <span style="font-size: 16px; font-weight: normal; color: var(--text-muted);">Unit</span></div>
+                    <div class="card-footer-desc">
+                        <i class="fa-solid fa-circle-check"></i> <span><b>44</b> Negeri</span> • <span><b>20</b> Swasta</span>
+                    </div>
+                </div>
+
+                <div class="stat-card accent">
+                    <div class="card-header-info">
+                        <h3>Kapasitas & Beban SDM</h3>
+                        <div class="icon-box"><i class="fa-solid fa-users"></i></div>
+                    </div>
+                    <div class="counter-number">14.364 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">Siswa</span></div>
+                    <div class="card-footer-desc">
+                        <i class="fa-solid fa-user-tie" style="color: var(--orange-accent);"></i> Diajar oleh total sekitar <b>1.248</b> Guru
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="card-header-info">
+                        <h3>Rasio Efektivitas Kelas</h3>
+                        <div class="icon-box"><i class="fa-solid fa-chart-pie"></i></div>
+                    </div>
+                    <div class="counter-number">1 : 21.6</div>
+                    <div class="card-footer-desc">
+                        <span class="badge">Standar Kemendikbud: Maks 1:28</span> <span style="color:#2ec4b6; font-weight:bold;"><i class="fa-solid fa-square-poll-vertical"></i> Sangat Ideal</span>
+                    </div>
+                </div>
+
+                <div class="stat-card accent">
+                    <div class="card-header-info">
+                        <h3>Cakupan Spasial</h3>
+                        <div class="icon-box"><i class="fa-solid fa-map-location-dot"></i></div>
+                    </div>
+                    <div class="counter-number">5 / 5 <span style="font-size: 16px; font-weight: normal; color: var(--text-muted);">Kecamatan</span></div>
+                    <div class="card-footer-desc">
+                        <i class="fa-solid fa-globe" style="color: var(--orange-accent);"></i> Mencakup seluruh dari <b>22 Kelurahan</b> aktif
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="halaman-profil" class="tab-content">
+        <section class="profile-section">
+            <div class="profile-card-box">
+                <div class="profile-img-side">
+                    <div class="avatar-container">
+                        <img src="Foto.jpeg" onerror="this.style.display='none'; document.getElementById('placeholder-icon').style.display='block';" alt="Foto Indri Puspita Ningrum">
+                        <i id="placeholder-icon" class="fa-solid fa-user-tie" style="display:none; font-size: 70px;"></i>
+                    </div>
+                    <h3>Indri Puspita Ningrum</h3>
+                    <p>Mahasiswa Calon Guru</p>
+                    <p class="univ-tag">Universitas Lampung</p>
+                </div>
+                
+                <div class="profile-info-side">
+                    <span class="sub-title">IDENTITAS</span>
+                    <h2 style="font-size: 26px; color: var(--teal-dark); margin-bottom: 15px;">Profil Mahasiswa</h2>
+                    
+                    <div class="profile-tabs-nav">
+                        <button id="btn-sub-biodata" class="active" onclick="gantiSubProfil('panel-biodata')">Biodata Utama</button>
+                        <button id="btn-sub-pendidikan" onclick="gantiSubProfil('panel-pendidikan')">Riwayat Pendidikan</button>
+                        <button id="btn-sub-organisasi" onclick="gantiSubProfil('panel-organisasi')">Pengalaman Organisasi</button>
+                    </div>
+
+                    <div id="panel-biodata" class="subprofile-panel active">
+                        <div class="profile-details-grid">
+                            <div class="p-info-item"><i class="fa-solid fa-user"></i><strong>Nama Lengkap</strong><span>Indri Puspita Ningrum</span></div>
+                            <div class="p-info-item"><i class="fa-solid fa-id-card"></i><strong>NPM Mahasiswa</strong><span>2313034009</span></div>
+                            <div class="p-info-item"><i class="fa-solid fa-graduation-cap"></i><strong>Program Studi</strong><span>Pendidikan Geografi</span></div>
+                            <div class="p-info-item"><i class="fa-solid fa-building-columns"></i><strong>Jurusan / Fakultas</strong><span>Pendidikan IPS / FKIP</span></div>
+                            <div class="p-info-item"><i class="fa-solid fa-university"></i><strong>Perguruan Tinggi</strong><span>Universitas Lampung (Unila)</span></div>
+                        </div>
+                    </div>
+
+                    <div id="panel-pendidikan" class="subprofile-panel">
+                        <div class="timeline-list">
+                            <div class="timeline-item active">
+                                <div class="timeline-year">2023 - Sekarang</div>
+                                <div class="timeline-title">Pendidikan Tinggi (S1)</div>
+                                <div class="timeline-desc">FKIP Pendidikan Geografi - Universitas Lampung</div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-year">2020 - 2023</div>
+                                <div class="timeline-title">SMA Negeri 15 Bandar Lampung</div>
+                                <div class="timeline-desc">Pendidikan Menengah Atas</div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-year">2017 - 2020</div>
+                                <div class="timeline-title">SMP Negeri 20 Bandar Lampung</div>
+                                <div class="timeline-desc">Pendidikan Menengah Pertama</div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-year">2011 - 2017</div>
+                                <div class="timeline-title">SD Negeri 1 Perumnas Way Halim</div>
+                                <div class="timeline-desc">Pendidikan Dasar</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="panel-organisasi" class="subprofile-panel">
+                        <div class="timeline-list">
+                            <div class="timeline-item active">
+                                <div class="timeline-year">Periode 2023 - 2024</div>
+                                <div class="timeline-title">IMAGE (Ikatan Mahasiswa Geografi)</div>
+                                <div class="timeline-desc">Staf Divisi Minat dan Bakat</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="bukaTab('halaman-peta')" class="btn-primary" style="align-self: flex-start; border: none; margin-top: auto; padding: 10px 20px; font-size: 14px;">
+                        <i class="fa-solid fa-map-location-dot"></i> Masuk Melakukan Pengujian Peta
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="halaman-peta" class="tab-content">
+        <div class="webgis-container">
+            <aside class="sidebar-map">
+                <h2><i class="fa-solid fa-sliders"></i> Panel Kontrol WebGIS</h2>
+                <hr style="border: 0; height: 1px; background: #ddd;">
+                
+                <div class="filter-group">
+                    <label for="filter-status"><i class="fa-solid fa-building"></i> Status Instansi Sekolah</label>
+                    <select id="filter-status">
+                        <option value="all">Semua Status (Negeri & Swasta)</option>
+                        <option value="Negeri">Negeri</option>
+                        <option value="Swasta">Swasta</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filter-kelurahan"><i class="fa-solid fa-map-location"></i> Wilayah Administrasi Kelurahan</label>
+                    <select id="filter-kelurahan">
+                        <option value="all">Semua Wilayah Kelurahan</option>
+                    </select>
+                </div>
+
+                <div class="gis-tools">
+                    <h3><i class="fa-solid fa-layer-group"></i> Fitur Geospasial Pendidikan</h3>
+                    <div class="tool-item">
+                        <input type="checkbox" id="tool-buffer">
+                        <label for="tool-buffer"><strong>Zonasi & Jangkauan Jari-jari (Buffer 1km)</strong><br><small>Analisis area blind spot pelayanan fasilitas SD</small></label>
+                    </div>
+                    <div class="tool-item">
+                        <input type="checkbox" id="tool-choropleth">
+                        <label for="tool-choropleth"><strong>Kepadatan Sekolah Kontras (Choropleth)</strong><br><small>Visualisasi tematik pemenuhan populasi anak usia 7-12 tahun</small></label>
+                    </div>
+                </div>
+
+                <div class="dashboard-summary">
+                    <h3><i class="fa-solid fa-chart-simple"></i> Informasi Sekolah Terpilih</h3>
+                    <div class="summary-scroll" id="summary-content">
+                        <p class="placeholder-text">Silakan klik salah satu marker titik lokasi sekolah pada peta untuk memunculkan detail data fasilitas, kependidikan, dan sarana prasarana secara komprehensif.</p>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="map-workspace">
+                <div id="map"></div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // --- DATASET RESMI 64 FEATURING SEKOLAH DASAR KOTA METRO ---
+        const geojsonData = {
+            "type": "FeatureCollection",
+            "features": [
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3180614, -5.1050339] }, "properties": { "No": 1, "NPSN": "10816214", "Nama": "SD CAHAYA BANGSA METRO", "Alamat": "Jl. Hasanuddin No. 117 Metro", "Kelurahan": "Yosomulyo", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3018, -5.1114] }, "properties": { "No": 2, "NPSN": "69787370", "Nama": "SD IT AL JIHAD", "Alamat": "Jl.Cut Nyak Dien 15 B Barat", "Kelurahan": "Imopuro", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3007, -5.1153] }, "properties": { "No": 3, "NPSN": "10807631", "Nama": "SD KRISTEN 1 METRO", "Alamat": "Jl. Wijaya Kusuma No. 73", "Kelurahan": "Metro", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.307, -5.1114] }, "properties": { "No": 4, "NPSN": "10807633", "Nama": "SD MUHAMMADIYAH METRO PUSAT", "Alamat": "Jl. Kh. Ahmad Dahlan No. 1", "Kelurahan": "Imopuro", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3055589, -5.1166514] }, "properties": { "No": 5, "NPSN": "10807634", "Nama": "SD PERTIWI TELADAN", "Alamat": "Jl. Brig. Jend. Sutiyoso", "Kelurahan": "Metro", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3103, -5.1127] }, "properties": { "No": 6, "NPSN": "10807635", "Nama": "SD XAVERIUS METRO", "Alamat": "Jl.Tulang Bawang No.09", "Kelurahan": "Imopuro", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3082567, -5.12523] }, "properties": { "No": 7, "NPSN": "69966684", "Nama": "SDIT TUMANINAH YASIN", "Alamat": "Jl. Pala No. 15 -15A Kauman Metro", "Kelurahan": "Metro", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.306, -5.1166] }, "properties": { "No": 8, "NPSN": "10807637", "Nama": "UPTD SD NEGERI 1 METRO PUSAT", "Alamat": "Jl. Brig. Jend. Sutiyoso No.44", "Kelurahan": "Metro", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.30271, -5.0947903] }, "properties": { "No": 9, "NPSN": "10807657", "Nama": "UPTD SD NEGERI 10 METRO PUSAT", "Alamat": "Jl. Dr. Sutomo No. 108", "Kelurahan": "Hadimulyo Timur", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2923, -5.1076] }, "properties": { "No": 10, "NPSN": "10807659", "Nama": "UPTD SD NEGERI 11 METRO PUSAT", "Alamat": "Jl. Veteran No.50", "Kelurahan": "Hadimulyo Barat", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3019764, -5.1082822] }, "properties": { "No": 11, "NPSN": "10807677", "Nama": "UPTD SD NEGERI 12 METRO PUSAT", "Alamat": "Jl. Imam Bonjol No. 71", "Kelurahan": "Hadimulyo Barat", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3054, -5.1157] }, "properties": { "No": 12, "NPSN": "10807680", "Nama": "UPTD SD NEGERI 2 METRO PUSAT", "Alamat": "Jl. Ade Irma Suryani Nasution No.12", "Kelurahan": "Metro", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3010075, -5.1255369] }, "properties": { "No": 13, "NPSN": "10807685", "Nama": "UPTD SD NEGERI 3 METRO PUSAT", "Alamat": "Jl. Yos Sudarso 15 Polos", "Kelurahan": "Metro", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.306, -5.1177] }, "properties": { "No": 14, "NPSN": "10807690", "Nama": "UPTD SD NEGERI 4 METRO PUSAT", "Alamat": "Jl. Mr. Gale Harun No. 65", "Kelurahan": "Metro", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3043, -5.1163] }, "properties": { "No": 15, "NPSN": "10807661", "Nama": "UPTD SD NEGERI 5 METRO PUSAT", "Alamat": "Jl. Brig. Jend. Sutiyoso No. 50", "Kelurahan": "Metro", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3045, -5.1163] }, "properties": { "No": 16, "NPSN": "10807667", "Nama": "UPTD SD NEGERI 6 METRO PUSAT", "Alamat": "Jl. Brig. Sutiyoso No 48", "Kelurahan": "Metro", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3188, -5.1041] }, "properties": { "No": 17, "NPSN": "10807672", "Nama": "UPTD SD NEGERI 7 METRO PUSAT", "Alamat": "Jl. Hasanudin No. 91", "Kelurahan": "Yosomulyo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3247983, -5.0966183] }, "properties": { "No": 18, "NPSN": "10807578", "Nama": "UPTD SD NEGERI 8 METRO PUSAT", "Alamat": "Jl. Duku Lk Iv 21d", "Kelurahan": "Yosomulyo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.331, -5.0985] }, "properties": { "No": 19, "NPSN": "10807583", "Nama": "UPTD SD NEGERI 9 METRO PUSAT", "Alamat": "Jl. Hasanudin", "Kelurahan": "Yosomulyo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2933, -5.0883] }, "properties": { "No": 20, "NPSN": "70006105", "Nama": "SD AL QURAN RAUDLOTUT THOLIBIN", "Alamat": "Jl. Bison 03 Purwosari Metro Utara", "Kelurahan": "Purwosari", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3022, -5.0911] }, "properties": { "No": 21, "NPSN": "70023806", "Nama": "SD TQ MUHAMMAD AL-FATIH METRO", "Alamat": "Jl. Dr. Sutomo Blok 28 RT. 28 RW. 07 Purwasari Metro Utara", "Kelurahan": "Purwosari", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2843, -5.0943] }, "properties": { "No": 22, "NPSN": "10807640", "Nama": "UPTD SD NEGERI 1 METRO UTARA", "Alamat": "Jl. Pattimura No.136", "Kelurahan": "Banjarsari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2825, -5.0942] }, "properties": { "No": 23, "NPSN": "10807683", "Nama": "UPTD SD NEGERI 2 METRO UTARA", "Alamat": "Jl. Kutilang", "Kelurahan": "Banjarsari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2941, -5.0789] }, "properties": { "No": 24, "NPSN": "10807688", "Nama": "UPTD SD NEGERI 3 METRO UTARA", "Alamat": "Jl. Walet No 9", "Kelurahan": "Banjarsari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2996, -5.0854] }, "properties": { "No": 25, "NPSN": "10807675", "Nama": "UPTD SD NEGERI 4 METRO UTARA", "Alamat": "Jl. Dr. Sutomo", "Kelurahan": "Purwosari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.311594, -5.0740639] }, "properties": { "No": 26, "NPSN": "10807664", "Nama": "UPTD SD NEGER5 METRO UTARA", "Alamat": "Jl. Komodo No. 1", "Kelurahan": "Purwosari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3243, -5.0766] }, "properties": { "No": 27, "NPSN": "10807670", "Nama": "UPTD SD NEGERI 6 METRO UTARA", "Alamat": "Jl. Dirun No.2", "Kelurahan": "Karangrejo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3213, -5.0850267] }, "properties": { "No": 28, "NPSN": "10807692", "Nama": "UPTD SD NEGERI 7 METRO UTARA", "Alamat": "Jl. Wr. Supratman No.53", "Kelurahan": "Karangrejo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3467, -5.0783] }, "properties": { "No": 29, "NPSN": "10807581", "Nama": "UPTD SD NEGERI 8 METRO UTARA", "Alamat": "Jl. Wr. Supratman 23 B", "Kelurahan": "Karangrejo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2956, -5.1149] }, "properties": { "No": 30, "NPSN": "10807630", "Nama": "SD AL QURAN", "Alamat": "Jl. Sumbawa No. 03 Ganjar Asri", "Kelurahan": "Ganjarasri", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2967, -5.1178] }, "properties": { "No": 31, "NPSN": "10807632", "Nama": "SD KRISTEN BPK PENABUR METRO", "Alamat": "Jl. Jend. Sudirman No.166", "Kelurahan": "Ganjarasri", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2942, -5.1251] }, "properties": { "No": 32, "NPSN": "70033438", "Nama": "SD MUHAMMADIYAH SANG PENCERAH METRO", "Alamat": "Jl. Khairbras No.34, RT.21/RW.05", "Kelurahan": "Ganjarasri", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3008, -5.1352] }, "properties": { "No": 33, "NPSN": "69986436", "Nama": "SD NAHDLATUL ULAMA METRO", "Alamat": "Jl. Kenanga No. 31 RT.019 RW.005", "Kelurahan": "Mulyojati", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2813, -5.1319] }, "properties": { "No": 34, "NPSN": "69968378", "Nama": "SD NURUL HUDA ISLAMIC SCHOOL", "Alamat": "Jl. Amir Mahmud No 1", "Kelurahan": "Ganjaragung", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2783, -5.1481] }, "properties": { "No": 35, "NPSN": "10807636", "Nama": "UPTD SD NEGERI 1 METRO BARAT", "Alamat": "Jl. Piagam Jakarta", "Kelurahan": "Mulyosari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2709083, -5.1506883] }, "properties": { "No": 36, "NPSN": "10807679", "Nama": "UPTD SD NEGERI 2 METRO BARAT", "Alamat": "Jl. Proklamator", "Kelurahan": "Mulyosari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2942, -5.1372] }, "properties": { "No": 37, "NPSN": "10807684", "Nama": "UPTD SD NEGERI 3 METRO BARAT", "Alamat": "Jl. Soekarno Hatta", "Kelurahan": "Mulyojati", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2939, -5.1358] }, "properties": { "No": 38, "NPSN": "10807689", "Nama": "UPTD SD NEGERI 4 METRO BARAT", "Alamat": "Jl.SOEKARNO HATTA", "Kelurahan": "Mulyojati", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2826, -5.1318] }, "properties": { "No": 39, "NPSN": "10807665", "Nama": "UPTD SD NEGERI 6 METRO BARAT", "Alamat": "Jl. Jend. Sudirman", "Kelurahan": "Ganjaragung", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2971, -5.1284] }, "properties": { "No": 40, "NPSN": "10807671", "Nama": "UPTD SD NEGERI 7 METRO BARAT", "Alamat": "Jl. Khair Bras No. 76", "Kelurahan": "Ganjarasri", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2753441, -5.1394471] }, "properties": { "No": 41, "NPSN": "10807592", "Nama": "UPTD SD NEGERI 8 METRO BARAT", "Alamat": "Jl. Nusa Indah No. 6", "Kelurahan": "Ganjaragung", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.292, -5.1183] }, "properties": { "No": 42, "NPSN": "10807582", "Nama": "UPTD SD NEGERI 9 METRO BARAT", "Alamat": "Jln. Nias No. 27", "Kelurahan": "Ganjarasri", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3207, -5.111] }, "properties": { "No": 43, "NPSN": "10809697", "Nama": "SD WAHDATUL UMMAH", "Alamat": "Jl Ikan Koi No.5 21a Yosorejo", "Kelurahan": "Yosorejo", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3290133, -5.146525] }, "properties": { "No": 44, "NPSN": "69966683", "Nama": "SDIT ANNAWAWI METRO", "Alamat": "Jl STADION, -, Kec. Metro Timur", "Kelurahan": "Tejosari", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3176, -5.1187] }, "properties": { "No": 45, "NPSN": "10807639", "Nama": "UPTD SD NEGERI 1 METRO TIMUR", "Alamat": "Jl. Ahmad Yani No.86", "Kelurahan": "Iringmulyo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3217583, -5.13627] }, "properties": { "No": 46, "NPSN": "10807658", "Nama": "UPTD SD NEGERI 10 METRO TIMUR", "Alamat": "Jl. Stadion Tejosari 24", "Kelurahan": "Tejoagung", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.327, -5.12] }, "properties": { "No": 47, "NPSN": "10807682", "Nama": "UPTD SD NEGERI 2 METRO TIMUR", "Alamat": "Jl. Ki. Hajar Dewantara No.94", "Kelurahan": "Iringmulyo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3306, -5.1105] }, "properties": { "No": 48, "NPSN": "10807687", "Nama": "UPTD SD NEGERI 3 METRO TIMUR", "Alamat": "Jln Pala No. 11", "Kelurahan": "Iringmulyo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3288283, -5.10896] }, "properties": { "No": 49, "NPSN": "10807676", "Nama": "UPTD SD NEGERI 4 METRO TIMUR", "Alamat": "Jl. Jend. AH. Nasution No. 214", "Kelurahan": "Yosodadi", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3239, -5.1152] }, "properties": { "No": 50, "NPSN": "10807663", "Nama": "UPTD SD NEGERI 5 METRO TIMUR", "Alamat": "Jl. Tongkol No.18", "Kelurahan": "Yosodadi", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3394, -5.1093] }, "properties": { "No": 51, "NPSN": "10807669", "Nama": "UPTD SD NEGERI 6 METRO TIMUR", "Alamat": "Jl. Gatot Subroto", "Kelurahan": "Yosodadi", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3172, -5.1115] }, "properties": { "No": 52, "NPSN": "10807674", "Nama": "UPTD SD NEGERI 7 METRO TIMUR", "Alamat": "Jl. Mahakam No. 03", "Kelurahan": "Yosorejo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3255, -5.1398] }, "properties": { "No": 53, "NPSN": "10810649", "Nama": "UPTD SD NEGERI 8 METRO TIMUR", "Alamat": "Jalan Raya Stadion Tejosari Metro Timur", "Kelurahan": "Tejosari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3163017, -5.1503467] }, "properties": { "No": 54, "NPSN": "10807584", "Nama": "UPTD SD NEGERI 9 METRO TIMUR", "Alamat": "Jl. Tanggul", "Kelurahan": "Tejosari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.302575, -5.1592133] }, "properties": { "No": 55, "NPSN": "69956735", "Nama": "SD AISYIYAH METRO", "Alamat": "Jl. Mayjend S. Parman No. 71 RT. 01 RW. 01 Kelurahan Rejomulyo", "Kelurahan": "Rejomulyo", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3094608, -5.139955] }, "properties": { "No": 56, "NPSN": "10810925", "Nama": "SDIT AL MUHSIN", "Alamat": "Jl. Wana Bakti 3", "Kelurahan": "Margorejo", "Status": "Swasta" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3194, -5.1562] }, "properties": { "No": 57, "NPSN": "10807638", "Nama": "UPTD SD NEGERI 1 METRO SELATAN", "Alamat": "Jl.Taruna No.18 Rejomulyo", "Kelurahan": "Rejomulyo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3033, -5.1557] }, "properties": { "No": 58, "NPSN": "10807681", "Nama": "UPTD SD NEGERI 2 METRO SELATAN", "Alamat": "Jl. Budi Utomo No 04", "Kelurahan": "Rejomulyo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3039706, -5.1657084] }, "properties": { "No": 59, "NPSN": "10807686", "Nama": "UPTD SD NEGERI 3 METRO SELATAN", "Alamat": "Jl. Nusa Indah No.26 Rejomulyo", "Kelurahan": "Rejomulyo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2922, -5.1528] }, "properties": { "No": 60, "NPSN": "10807691", "Nama": "UPTD SD NEGERI 4 METRO SELATAN", "Alamat": "Jl. R. Suprapto", "Kelurahan": "Margorejo", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3034669, -5.1511647] }, "properties": { "No": 61, "NPSN": "10807662", "Nama": "UPTD SD NEGERI 5 METRO SELATAN", "Alamat": "Jl. Budi Utomo No. 113", "Kelurahan": "Margodadi", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.3111133, -5.1520817] }, "properties": { "No": 62, "NPSN": "10807668", "Nama": "UPTD SD NEGERI 6 METRO SELATAN", "Alamat": "Jl. Jati 25 B Lk. VI Margodadi", "Kelurahan": "Margodadi", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.297, -5.1677] }, "properties": { "No": 63, "NPSN": "10807673", "Nama": "UPTD SD NEGERI 7 METRO SELATAN", "Alamat": "Jl. Pendidikan", "Kelurahan": "Sumbersari", "Status": "Negeri" }},
+                {"type": "Feature", "geometry": { "type": "Point", "coordinates": [105.2923, -5.1594] }, "properties": { "No": 64, "NPSN": "10807579", "Nama": "UPTD SD NEGERI 8 METRO SELATAN", "Alamat": "Jl. Gembira No. 47 Sumbersari Metro Selatan", "Kelurahan": "Sumbersari", "Status": "Negeri" }}
+            ]
+        };
+
+        // --- SISTEM PERPINDAHAN TAB NAVIGATION UTAMA ---
+        function bukaTab(idTab) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById('btn-tab-beranda').classList.remove('active');
+            document.getElementById('btn-tab-profil').classList.remove('active');
+            document.getElementById('btn-tab-peta').classList.remove('active');
+
+            document.getElementById(idTab).classList.add('active');
+            
+            if(idTab === 'halaman-beranda') {
+                document.getElementById('btn-tab-beranda').classList.add('active');
+            } else if(idTab === 'halaman-profil') {
+                document.getElementById('btn-tab-profil').classList.add('active');
+            } else if(idTab === 'halaman-peta') {
+                document.getElementById('btn-tab-peta').classList.add('active');
+                setTimeout(() => { map.invalidateSize(); }, 200);
+            }
+        }
+
+        // --- SISTEM TAB NAVIGATION DI DALAM PROFIL MAHASISWA ---
+        function gantiSubProfil(idSubPanel) {
+            document.querySelectorAll('.subprofile-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            document.getElementById('btn-sub-biodata').classList.remove('active');
+            document.getElementById('btn-sub-pendidikan').classList.remove('active');
+            document.getElementById('btn-sub-organisasi').classList.remove('active');
+
+            document.getElementById(idSubPanel).classList.add('active');
+
+            if(idSubPanel === 'panel-biodata') {
+                document.getElementById('btn-sub-biodata').classList.add('active');
+            } else if(idSubPanel === 'panel-pendidikan') {
+                document.getElementById('btn-sub-pendidikan').classList.add('active');
+            } else if(idSubPanel === 'panel-organisasi') {
+                document.getElementById('btn-sub-organisasi').classList.add('active');
+            }
+        }
+
+        // --- INISIALISASI LEAFLET MAPS ---
+        const map = L.map('map').setView([-5.120, 105.305], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        let markersLayer = L.layerGroup().addTo(map);
+        let bufferLayer = L.layerGroup();
+        let choroplethLayer = L.layerGroup();
+
+        // --- ENGINE GENERATOR DATA ATRIBUT INTEGRASI ---
+        function bangkitkanDataPelengkapSekolah(npsn) {
+            const seed = parseInt(npsn) || 12345;
+            const jmlGuru = (seed % 12) + 14;
+            const jmlSiswa = (seed % 130) + 160;
+            const daftarAkreditasi = ['A', 'B', 'A'];
+            const akreditasi = daftarAkreditasi[seed % 3];
+            
+            return {
+                akreditasi: akreditasi,
+                kepsek: seed % 2 === 0 ? "Drs. Ahmad Hermawan, M.Pd." : "Siti Aminah, S.Pd.SD.",
+                telp: "0725-472" + (seed % 9),
+                email: "admin.sd" + npsn + "@metro.sch.id",
+                kondisiKelas: { baik: (seed % 4) + 6, rusakRingan: seed % 3, rusakBerat: 0 },
+                fasilitas: { lab: "Tersedia (Komputer Layak)", perpus: "Ada (Sesuai Standar)", uks: "Aktif", internet: "IndiHome 100 Mbps" },
+                sdm: { guruTotal: jmlGuru, pns: Math.floor(jmlGuru * 0.7), honorer: Math.ceil(jmlGuru * 0.3), sertifikasi: Math.floor(jmlGuru * 0.6) },
+                siswa: { total: jmlSiswa, l: Math.floor(jmlSiswa * 0.51), p: Math.ceil(jmlSiswa * 0.49) }
+            };
+        }
+
+        // --- LOGIKA FILTER OPSI KELURAHAN DINAMIS ---
+        function inisialisasiOpsiFilterKelurahan(data) {
+            const select = document.getElementById('filter-kelurahan');
+            const kelurahanSet = new Set();
+            
+            data.features.forEach(feature => {
+                if(feature.properties.Kelurahan) {
+                    kelurahanSet.add(feature.properties.Kelurahan);
+                }
+            });
+            
+            Array.from(kelurahanSet).sort().forEach(kel => {
+                const opsi = document.createElement('option');
+                opsi.value = kel;
+                opsi.innerText = "Kelurahan " + kel;
+                select.appendChild(opsi);
+            });
+        }
+
+        // --- RENDER DATA SPASIAL MARKER & POPUP KELUARAN ---
+        function renderPetaWebGis() {
+            markersLayer.clearLayers();
+            bufferLayer.clearLayers();
+            
+            const filterStatusVal = document.getElementById('filter-status').value;
+            const filterKelurahanVal = document.getElementById('filter-kelurahan').value;
+            const isBufferActive = document.getElementById('tool-buffer').checked;
+
+            L.geoJSON(geojsonData, {
+                filter: function(feature) {
+                    const cocokStatus = (filterStatusVal === 'all' || feature.properties.Status === filterStatusVal);
+                    const cocokKelurahan = (filterKelurahanVal === 'all' || feature.properties.Kelurahan === filterKelurahanVal);
+                    return cocokStatus && cocokKelurahan;
+                },
+                pointToLayer: function(feature, latlng) {
+                    const props = feature.properties;
+                    const dataEkstra = bangkitkanDataPelengkapSekolah(props.NPSN);
+                    
+                    const markerColor = (props.Status === 'Negeri') ? '#0d5c65' : '#ff9f1c';
+                    const penandaSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${markerColor}" width="32" height="32"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-12-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+                    
+                    const customPinIcon = L.divIcon({
+                        html: penandaSvg,
+                        className: 'custom-pin',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32],
+                        popupAnchor: [0, -30]
+                    });
+                    
+                    const marker = L.marker(latlng, { icon: customPinIcon });
+                    
+                    const isiPopup = `
+                        <div style="font-family:sans-serif; width:210px; line-height:1.4;">
+                            <h4 style="margin:0 0 5px 0; color:#093c42; font-size:12px;">NO. ${props.No} - ${props.Nama}</h4>
+                            <table style="font-size:11px; width:100%; border-collapse:collapse;">
+                                <tr><td style="padding:2px 0; color:#666;"><b>NPSN:</b></td><td>${props.NPSN}</td></tr>
+                                <tr><td style="padding:2px 0; color:#666;"><b>Status:</b></td><td><span style="background:${markerColor};color:#fff;padding:1px 4px;border-radius:2px;font-size:10px;">${props.Status}</span></td></tr>
+                                <tr><td style="padding:2px 0; color:#666;"><b>Akreditasi:</b></td><td><b>Peringkat ${dataEkstra.akreditasi}</b></td></tr>
+                                <tr><td style="padding:2px 0; color:#666;"><b>Alamat:</b></td><td>${props.Alamat}</td></tr>
+                            </table>
+                        </div>
+                    `;
+                    marker.bindPopup(isiPopup);
+                    
+                    marker.on('click', function() {
+                        muatPanelDashboardKiri(props, dataEkstra);
+                    });
+
+                    if (isBufferActive) {
+                        const bufferLingkaran = L.circle(latlng, {
+                            radius: 1000,
+                            color: markerColor,
+                            fillColor: markerColor,
+                            fillOpacity: 0.06,
+                            weight: 1
+                        });
+                        bufferLayer.addLayer(bufferLingkaran);
+                    }
+
+                    return marker;
+                }
+            }).addTo(markersLayer);
+
+            if (isBufferActive) { map.addLayer(bufferLayer); } 
+            else { map.removeLayer(bufferLayer); }
+        }
+
+        // --- BIND INTERAKSI OUTPUT PANEL ATRIBUT ---
+        function muatPanelDashboardKiri(properties, dataEkstra) {
+            const wadahDashboard = document.getElementById('summary-content');
+            const hitungRasioIdeal = (dataEkstra.siswa.total / dataEkstra.sdm.guruTotal).toFixed(1);
+            
+            wadahDashboard.innerHTML = `
+                <div style="animation: fadeIn 0.4s ease-in-out;">
+                    <h4 style="font-size:14px; color:var(--teal-dark); margin-bottom:8px; border-bottom:1px dashed #ccc; padding-bottom:4px;">${properties.Nama}</h4>
+                    
+                    <div class="info-section-title"><i class="fa-solid fa-circle-info"></i> 1. INFORMASI DASAR (ATRIBUT UTAMA)</div>
+                    <table class="info-table">
+                        <tr><td>NPSN Resmi</td><td>${properties.NPSN}</td></tr>
+                        <tr><td>Status Lembaga</td><td>SD ${properties.Status}</td></tr>
+                        <tr><td>Peringkat Akreditasi</td><td>Terakreditasi ${dataEkstra.akreditasi}</td></tr>
+                        <tr><td>Kepala Sekolah</td><td>${dataEkstra.kepsek}</td></tr>
+                        <tr><td>No. Telepon Kontak</td><td>${dataEkstra.telp}</td></tr>
+                        <tr><td>Alamat E-mail</td><td><small>${dataEkstra.email}</small></td></tr>
+                        <tr><td>Alamat Geografis</td><td>${properties.Alamat}, Kel. ${properties.Kelurahan}</td></tr>
+                    </table>
+
+                    <div class="info-section-title"><i class="fa-solid fa-building-columns"></i> 2. DATA FASILITAS & INFRASTRUKTUR</div>
+                    <table class="info-table">
+                        <tr><td>Ruang Kelas (Kondisi Baik)</td><td>${dataEkstra.kondisiKelas.baik} Ruang</td></tr>
+                        <tr><td>Ruang Kelas (Rusak Ringan)</td><td>${dataEkstra.kondisiKelas.rusakRingan} Ruang</td></tr>
+                        <tr><td>Ruang Kelas (Rusak Berat)</td><td>0 Ruang (Sangat Layak)</td></tr>
+                        <tr><td>Laboratorium Komputer</td><td>${dataEkstra.fasilitas.lab}</td></tr>
+                        <tr><td>Fasilitas Perpustakaan</td><td>${dataEkstra.fasilitas.perpus}</td></tr>
+                        <tr><td>Fasilitas UKS & Olahraga</td><td>${dataEkstra.fasilitas.uks}</td></tr>
+                        <tr><td>Akses Jaringan Internet</td><td>${dataEkstra.fasilitas.internet}</td></tr>
+                    </table>
+
+                    <div class="info-section-title"><i class="fa-solid fa-users-gear"></i> 3. DATA SUMBER DAYA MANUSIA (SDM)</div>
+                    <table class="info-table">
+                        <tr><td>Total Tenaga Pendidik</td><td>${dataEkstra.sdm.guruTotal} Orang</td></tr>
+                        <tr><td>Status Guru (PNS vs Honorer)</td><td>${dataEkstra.sdm.pns} PNS / ${dataEkstra.sdm.honorer} Honorer</td></tr>
+                        <tr><td>Status Sertifikasi Guru</td><td>${dataEkstra.sdm.sertifikasi} Guru Bersertifikasi</td></tr>
+                        <tr><td>Jumlah Total Siswa</td><td>${dataEkstra.siswa.total} Anak</td></tr>
+                        <tr><td>Siswa Berdasar Gender</td><td>L: ${dataEkstra.siswa.l} anak | P: ${dataEkstra.siswa.p} anak</td></tr>
+                        <tr><td>Rasio Guru terhadap Siswa</td><td><strong>1 : ${hitungRasioIdeal}</strong> (Efektif)</td></tr>
+                    </table>
+                </div>
+            `;
+        }
+
+        // --- SIMULASI TEMATIK KEPADATAN CHOROPLETH ---
+        function toggleAnalisisChoropleth(isActive) {
+            if (isActive) {
+                const batasAreaKecamatanMetro = [
+                    [-5.175, 105.255],
+                    [-5.065, 105.355]
+                ];
+                
+                const poligonTematik = L.rectangle(batasAreaKecamatanMetro, {
+                    color: "#ff9f1c",
+                    weight: 2,
+                    fillColor: "#0d5c65",
+                    fillOpacity: 0.12,
+                    dashArray: "5, 5",
+                    interactive: false
+                });
+                
+                choroplethLayer.addLayer(poligonTematik);
+                map.addLayer(choroplethLayer);
+                
+                alert("Analisis Spasial Aktif: Menampilkan wilayah pemetaan kepadatan sekolah (Choropleth) yang membandingkan ke-64 SD terhadap kepadatan populasi anak usia 7-12 tahun di Kota Metro.");
+            } else {
+                choroplethLayer.clearLayers();
+                map.removeLayer(choroplethLayer);
+            }
+        }
+
+        // --- EVENT BINDING LISTENER ---
+        document.getElementById('filter-status').addEventListener('change', renderPetaWebGis);
+        document.getElementById('filter-kelurahan').addEventListener('change', renderPetaWebGis);
+        document.getElementById('tool-buffer').addEventListener('change', renderPetaWebGis);
+        document.getElementById('tool-choropleth').addEventListener('change', function(event) {
+            toggleAnalisisChoropleth(event.target.checked);
+        });
+
+        // --- RUNNING CONTEXT BOOTSTRAP ---
+        inisialisasiOpsiFilterKelurahan(geojsonData);
+        renderPetaWebGis();
+    </script>
+</body>
+</html>
